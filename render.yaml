@@ -1,0 +1,12 @@
+# Render.com Blueprint
+services:
+  - type: web
+    name: taqueria-pos
+    runtime: node
+    buildCommand: cd client && npm install && npm run build && cd ../server && npm install
+    startCommand: cd server && NODE_ENV=production node index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
