@@ -2828,6 +2828,16 @@ const SuperAdminPanel = ({ user, onLogout }) => {
   // Obtener el ID del dispositivo actual para copiar y pegar fácilmente
   const currentToken = localStorage.getItem('cerebro_device_id');
 
+  const forceGlobalLogout = async () => {
+    if (!confirm('¿EstÁS SEGURO? Esto cerrará la sesión de TODOS los usuarios activos en todas las sucursales de inmediato.')) return;
+    try {
+      await axios.post(`${API_URL}/api/super/force-logout`);
+      alert('Se ha enviado la señal de cierre global.');
+    } catch (err) {
+      alert('Error al enviar señal de cierre global');
+    }
+  };
+
   return (
     <div className="admin-workflow" style={{ padding: '40px', maxWidth: '1200px', margin: '0 auto' }}>
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
@@ -2837,6 +2847,20 @@ const SuperAdminPanel = ({ user, onLogout }) => {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+          <button
+            onClick={forceGlobalLogout}
+            className="btn-secondary"
+            style={{
+              width: 'auto',
+              background: 'rgba(255, 71, 87, 0.1)',
+              color: '#ff4757',
+              border: '1px solid rgba(255, 71, 87, 0.3)',
+              fontSize: '0.8rem'
+            }}
+          >
+            🛑 CIERRE GLOBAL
+          </button>
+
           <div className="glass-card" style={{
             padding: '10px 20px',
             display: 'flex',
@@ -2854,7 +2878,7 @@ const SuperAdminPanel = ({ user, onLogout }) => {
             </div>
             <button
               onClick={toggleSecurity}
-              className={`btn - ${securityEnabled ? 'primary' : 'secondary'}`}
+              className={`btn-${securityEnabled ? 'primary' : 'secondary'}`}
               style={{
                 padding: '6px 12px',
                 fontSize: '0.7rem',

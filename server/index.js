@@ -902,6 +902,12 @@ app.put('/api/super/settings', (req, res) => {
     });
 });
 
+// Force logout all connected users (Global Reset)
+app.post('/api/super/force-logout', (req, res) => {
+    io.emit('force_logout');
+    res.json({ success: true, message: 'Global logout signal sent' });
+});
+
 // Serve frontend in production
 if (process.env.NODE_ENV === 'production') {
     app.use(express.static(path.join(__dirname, '..', 'client', 'dist')));

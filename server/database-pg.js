@@ -263,6 +263,7 @@ const initDb = async () => {
             ['ticket_show_logo', '1'],
             ['ticket_qr_url', ''],
             ['ticket_show_qr', '0'],
+            ['security_enabled', '1'],
         ];
         for (const [key, value] of ticketDefaults) {
             await client.query(`INSERT INTO settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO NOTHING`, [key, value]);

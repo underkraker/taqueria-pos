@@ -83,7 +83,10 @@ const initDb = () => {
             db.run(`CREATE TABLE IF NOT EXISTS settings (
                 key TEXT PRIMARY KEY,
                 value TEXT
-            )`);
+            )`, () => {
+                // Initialize default security setting
+                db.run(`INSERT OR IGNORE INTO settings (key, value) VALUES ('security_enabled', '1')`);
+            });
 
             // Gastos de la Sucursal
             db.run(`CREATE TABLE IF NOT EXISTS expenses (
