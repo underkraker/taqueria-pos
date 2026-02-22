@@ -48,7 +48,7 @@ const initDb = () => {
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 table_number INTEGER,
                 waiter_id INTEGER,
-                status TEXT CHECK(status IN ('pending', 'preparing', 'ready', 'paid', 'cancelled')),
+                status TEXT CHECK(status IN ('pending', 'preparing', 'ready', 'dispatched', 'paid', 'cancelled')),
                 total REAL DEFAULT 0,
                 payment_method TEXT DEFAULT 'cash', -- efectivo, tarjeta, transferencia
                 tip REAL DEFAULT 0,

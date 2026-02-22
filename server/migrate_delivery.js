@@ -1,29 +1,29 @@
-// Migration: Add delivery fields to orders table
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
-const db = new sqlite3.Database(path.resolve(__dirname, 'taqueria.db'));
+require('dotenv').config();
+const { Pool } = require('pg');
 
-const migrations = [
-    `ALTER TABLE orders ADD COLUMN order_type TEXT DEFAULT 'dine_in'`,
-    `ALTER TABLE orders ADD COLUMN customer_name TEXT DEFAULT ''`,
-    `ALTER TABLE orders ADD COLUMN customer_phone TEXT DEFAULT ''`,
-    `ALTER TABLE orders ADD COLUMN delivery_address TEXT DEFAULT ''`,
-    `ALTER TABLE orders ADD COLUMN delivery_notes TEXT DEFAULT ''`,
-    `ALTER TABLE orders ADD COLUMN platform_commission REAL DEFAULT 0`,
-];
-
-let completed = 0;
-migrations.forEach(sql => {
-    db.run(sql, (err) => {
-        completed++;
-        if (err && !err.message.includes('duplicate column')) {
-            console.error('Migration error:', err.message);
-        } else {
-            console.log(`✅ Migration ${completed}/${migrations.length} applied`);
-        }
-        if (completed === migrations.length) {
-            console.log('All delivery migrations complete!');
-            db.close();
-        }
-    });
+const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false }
 });
+
+async function migrate() {
+    try {
+        console.log('Migrating Delivery statuses...');
+        const client = await pool.connect();
+
+        // Drop the existing constraint
+        await client.query(`ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_status_check;`);
+
+        // Add the new one with 'dispatched'
+        await client.query(`ALTER TABLE orders ADD CONSTRAINT orders_status_check CHECK(status IN ('pending', 'preparing', 'ready', 'dispatched', 'paid', 'cancelled'));`);
+
+        console.log('✅ Base de datos actualizada: Estado "dispatched" añadido.');
+        client.release();
+    } catch (err) {
+        console.error('Error durante la migración:', err);
+    } finally {
+        pool.end();
+    }
+}
+
+migrate();

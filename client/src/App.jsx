@@ -222,10 +222,21 @@ const Login = ({ onLogin }) => {
         resolve(null);
         return;
       }
+
+      const timeoutId = setTimeout(() => {
+        resolve(null);
+      }, 4000); // 4 seconds absolute timeout
+
       navigator.geolocation.getCurrentPosition(
-        (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
-        () => resolve(null),
-        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+        (pos) => {
+          clearTimeout(timeoutId);
+          resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
+        },
+        () => {
+          clearTimeout(timeoutId);
+          resolve(null);
+        },
+        { enableHighAccuracy: true, timeout: 4000, maximumAge: 0 }
       );
     });
   };
@@ -1006,6 +1017,7 @@ const AdminPanel = ({ user, branchInfo, onBranchUpdate, onLogout }) => {
 
   const manageProduct = async (e) => {
     e.preventDefault();
+    const formData = new FormData(e.target);
     const data = Object.fromEntries(formData);
     data.branch_id = user.branch_id;
     data.price = parseFloat(data.price);
@@ -2150,6 +2162,25 @@ const CashierPanel = ({ user, branchInfo, onLogout }) => {
               }}>{orders.filter(o => o.status === 'ready').length}</span>
             )}
           </button>
+
+          <button
+            onClick={() => setActiveTab('delivery')}
+            style={{
+              flex: 1, padding: '8px 14px', borderRadius: '6px', fontWeight: '600', fontSize: '0.85rem',
+              background: activeTab === 'delivery' ? '#8b5cf6' : 'transparent',
+              color: activeTab === 'delivery' ? 'white' : 'var(--text-muted)',
+              border: 'none', cursor: 'pointer', transition: 'all 0.2s ease',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
+            }}
+          >
+            🛵 Envíos {orders.filter(o => o.order_type !== 'dine_in' && o.status !== 'paid' && o.status !== 'cancelled').length > 0 && (
+              <span style={{
+                background: 'var(--accent)', color: 'white', borderRadius: '50%',
+                width: '18px', height: '18px', display: 'inline-flex', alignItems: 'center',
+                justifyContent: 'center', fontSize: '0.7rem', fontWeight: 'bold'
+              }}>{orders.filter(o => o.order_type !== 'dine_in' && o.status !== 'paid' && o.status !== 'cancelled').length}</span>
+            )}
+          </button>
         </div>
 
         <button onClick={onLogout} style={{
@@ -2514,6 +2545,85 @@ const CashierPanel = ({ user, branchInfo, onLogout }) => {
               </div>
             </div>
           )}
+        </div>
+      )}
+      {/* Tab: Envíos */}
+      {activeTab === 'delivery' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div className="orders-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px' }}>
+            {orders.filter(o => o.order_type !== 'dine_in' && o.status !== 'paid' && o.status !== 'cancelled').map(order => (
+              <div key={order.id} className="glass-card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', borderTop: `4px solid ${order.status === 'dispatched' ? '#8b5cf6' : (order.status === 'ready' ? 'var(--success)' : 'var(--warning)')}` }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', alignItems: 'center' }}>
+                  <span style={{ fontSize: '1.2rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {order.order_type === 'takeout' ? '🥡 P/Llevar' :
+                      order.order_type === 'delivery_didi' ? '🟠 DiDi' :
+                        order.order_type === 'delivery_uber' ? '⚫ Uber' :
+                          order.order_type === 'delivery_rappi' ? '🟢 Rappi' : '🛵 Propio'}
+                  </span>
+                  <span className={`badge badge-${order.status}`}>{order.status.toUpperCase()}</span>
+                </div>
+
+                <div style={{ marginBottom: '12px', padding: '10px', background: 'rgba(0,0,0,0.2)', borderRadius: '8px' }}>
+                  <p style={{ margin: 0, fontWeight: 'bold' }}>{order.customer_name || 'Sin nombre'}</p>
+                  {order.customer_phone && <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem' }}>📱 {order.customer_phone}</p>}
+                  {order.delivery_address && <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem' }}>📍 {order.delivery_address}</p>}
+                  {order.delivery_notes && <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: 'var(--accent)' }}>📝 {order.delivery_notes}</p>}
+                </div>
+
+                <div style={{ flex: 1, marginBottom: '16px' }}>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '8px' }}>
+                    {order.items.length} productos • {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </div>
+                  <div style={{ fontWeight: 'bold', fontSize: '1.2rem', color: 'var(--success)' }}>
+                    ${parseFloat(order.total).toFixed(2)}
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: 'auto' }}>
+                  <button
+                    onClick={() => printThermalTicket(order, branchInfo)}
+                    style={{ background: 'var(--surface)', color: 'white', padding: '10px', borderRadius: '8px', gridColumn: '1 / -1', border: '1px solid var(--glass-border)', cursor: 'pointer' }}
+                  >🖨️ Imprimir Ticket</button>
+
+                  {order.status === 'ready' && order.order_type !== 'takeout' && (
+                    <button className="btn-primary" onClick={async () => {
+                      try {
+                        await axios.put(`${API_URL}/api/orders/${order.id}/status`, { status: 'dispatched', branch_id: user.branch_id });
+                        fetchOrders();
+                      } catch (e) { alert('Error al actualizar'); }
+                    }} style={{ gridColumn: '1 / -1', background: '#8b5cf6' }}>
+                      🛵 MARCAR EN CAMINO
+                    </button>
+                  )}
+
+                  {(order.status === 'ready' && order.order_type === 'takeout') || order.status === 'dispatched' || order.order_type.startsWith('delivery_') ? (
+                    <button className="btn-primary" onClick={async () => {
+                      if (confirm('¿Confirmar pedido como entregado y pagado?')) {
+                        try {
+                          await axios.put(`${API_URL}/api/orders/${order.id}/status`, { status: 'paid', payment_method: 'card', branch_id: user.branch_id });
+                          fetchOrders();
+                        } catch (e) { alert('Error al actualizar'); }
+                      }
+                    }} style={{ background: 'var(--success)', color: 'black', gridColumn: '1 / -1' }}>
+                      ✅ MARCAR ENTREGADO / PAGADO
+                    </button>
+                  ) : null}
+
+                  {order.status === 'pending' || order.status === 'preparing' ? (
+                    <button className="btn-primary" onClick={() => editOrder(order)} style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--accent)', gridColumn: '1 / -1', border: '1px solid var(--glass-border)' }}>
+                      ✏️ Editar / Agregar Notas
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+            ))}
+
+            {orders.filter(o => o.order_type !== 'dine_in' && o.status !== 'paid' && o.status !== 'cancelled').length === 0 && (
+              <div className="glass-card" style={{ textAlign: 'center', gridColumn: '1/-1', padding: '40px', color: 'var(--text-muted)' }}>
+                No hay envíos o pedidos para llevar pendientes.
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
