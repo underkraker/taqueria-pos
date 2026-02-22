@@ -71,6 +71,22 @@ function getDistance(lat1, lon1, lat2, lon2) {
     return R * c;
 }
 
+// ======= PUBLIC ENDPOINT FOR LOGIN SCREEN =============
+// Permite a la app web saber qué logo y título mostrar según el dispositivo
+app.get('/api/device-branch', (req, res) => {
+    const { token } = req.query;
+    if (!token) return res.json({ name: 'La Taquería', logo: null });
+
+    db.get(`SELECT branch_id FROM devices WHERE device_token = ?`, [token], (err, dev) => {
+        if (err || !dev) return res.json({ name: 'La Taquería', logo: null });
+
+        db.get(`SELECT name, logo FROM branches WHERE id = ?`, [dev.branch_id], (err, branch) => {
+            if (err || !branch) return res.json({ name: 'La Taquería', logo: null });
+            res.json({ name: branch.name || 'La Taquería', logo: branch.logo || null });
+        });
+    });
+});
+
 // Simple Login con Geofencing y Bloqueo de Dispositivo
 app.post('/api/login', (req, res) => {
     const { username, password, coords, deviceToken } = req.body;

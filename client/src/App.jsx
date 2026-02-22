@@ -186,6 +186,7 @@ const Login = ({ onLogin }) => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [branchInfo, setBranchInfo] = useState({ name: '🌮 Taquería El Cerebro', logo: null });
 
   // Obtener o Generar ID de Dispositivo (Firma digital local)
   const getDeviceToken = () => {
@@ -196,6 +197,24 @@ const Login = ({ onLogin }) => {
     }
     return token;
   };
+
+  useEffect(() => {
+    const fetchBranchContext = async () => {
+      try {
+        const token = getDeviceToken();
+        const res = await axios.get(`${API_URL}/api/device-branch?token=${token}`);
+        if (res.data) {
+          setBranchInfo({
+            name: res.data.name || '🌮 Taquería El Cerebro',
+            logo: res.data.logo
+          });
+        }
+      } catch (e) {
+        console.error("Failed to load branch context", e);
+      }
+    };
+    fetchBranchContext();
+  }, []);
 
   const getCoordinates = () => {
     return new Promise((resolve) => {
@@ -243,7 +262,15 @@ const Login = ({ onLogin }) => {
   return (
     <div className="auth-container">
       <div className="auth-card">
-        <h1>🌮 Taquería El Cerebro</h1>
+        <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+          {branchInfo.logo ? (
+            <img src={branchInfo.logo} alt="Logo" style={{ maxWidth: '120px', maxHeight: '120px', marginBottom: '10px', borderRadius: '10px' }} />
+          ) : (
+            <h1 style={{ fontSize: '2.5rem', marginBottom: '10px' }}>🌮</h1>
+          )}
+          <h2 style={{ margin: 0 }}>{branchInfo.name}</h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '5px' }}>Inicia sesión para continuar</p>
+        </div>
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label>Usuario</label>
