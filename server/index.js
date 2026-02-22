@@ -884,6 +884,24 @@ app.post('/api/admin/ticket-settings', (req, res) => {
     });
 });
 
+// ============ SUPER ADMIN SETTINGS ============
+app.get('/api/super/settings', (req, res) => {
+    db.all(`SELECT * FROM settings`, (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        const settings = {};
+        rows.forEach(r => { settings[r.key] = r.value; });
+        res.json(settings);
+    });
+});
+
+app.put('/api/super/settings', (req, res) => {
+    const { key, value } = req.body;
+    db.run(`INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value`, [key, value], function (err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ success: true });
+    });
+});
+
 // Serve frontend in production
 if (process.env.NODE_ENV === 'production') {
     app.use(express.static(path.join(__dirname, '..', 'client', 'dist')));

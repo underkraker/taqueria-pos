@@ -3006,18 +3006,18 @@ const SuperAdminPanel = ({ user, onLogout }) => {
 function App() {
   const [user, setUser] = useState(() => {
     try {
-      const saved = sessionStorage.getItem('cerebro_user');
+      const saved = localStorage.getItem('cerebro_user');
       return saved ? JSON.parse(saved) : null;
     } catch (e) {
       console.error("Error parsing saved user", e);
-      sessionStorage.removeItem('cerebro_user');
+      localStorage.removeItem('cerebro_user');
       return null;
     }
   });
   const [branchInfo, setBranchInfo] = useState(null);
 
   const handleLogout = () => {
-    sessionStorage.removeItem('cerebro_user');
+    localStorage.removeItem('cerebro_user');
     setUser(null);
     setBranchInfo(null);
     // Reload to ensure all states are clean
@@ -3055,7 +3055,7 @@ function App() {
 
   if (!user) {
     return <Login onLogin={(u) => {
-      sessionStorage.setItem('cerebro_user', JSON.stringify(u));
+      localStorage.setItem('cerebro_user', JSON.stringify(u));
       setUser(u);
     }} />;
   }
